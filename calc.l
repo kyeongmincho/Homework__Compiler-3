@@ -9,6 +9,7 @@ delim [ \t]
 ws {delim}+
 digit [0-9]
 letter [A-Za-z]
+type (int|float)
 id {letter}({letter}|{digit})*
 integer (0|([1-9]{digit}*))
 number {integer}\.{digit}+((E|e)[+\-]?{digit}+)?
@@ -22,7 +23,10 @@ newline \n
            return FLOAT; }
 {integer} { strcpy(yylval.s_val, yytext);
             return INT; }
-{id} { return IDENTIFIER; }
+{type} { strcpy(yylval.s_val, yytext);
+         return TYPE; }
+{id} { strcpy(yylval.s_val, yytext);
+       return IDENTIFIER; }
 {operator} { return *yytext; }
 (=) { strcpy(yylval.s_val, yytext);
       return EQ; }

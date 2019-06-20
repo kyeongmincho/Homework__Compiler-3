@@ -8,6 +8,11 @@ int yylex(void);
 char tmp_name[5];
 int tmp_cnt = 0;
 int next_tmp();
+
+enum TYPE_NUM {
+    INT_TYPE,
+    FLOAT_TYPE
+};
 %}
 
 /* yylval에 다양한 타입을 담기 위한 union */
@@ -19,6 +24,7 @@ int next_tmp();
 
 %token <s_val> FLOAT
 %token <s_val> INT
+%token <s_val> TYPE
 %token <s_val> IDENTIFIER
 %token <s_val> EQ
 %token OTHER
@@ -32,19 +38,30 @@ int next_tmp();
 
 %%
 
-lines : lines stmt
+lines : lines stmts
       | lines '\n'
       | /* empty */
       ;
 
-stmt : expr ';'
+stmts : stmt ';'
+      ;
+
+stmt : asgn
+     | decl
+     ;
+
+asgn : IDENTIFIER EQ expr { printf("%s = %s", $1, $3); }
+     ;
+
+decl : TYPE IDENTIFIER { printf("%s %s", $1, $2); }
      ;
 
 expr : FLOAT               { strcpy($$, $1); }
      | INT                 { strcpy($$, $1); }
+     | IDENTIFIER          { strcpy($$, $1); }
      | expr '+' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
-                             printf("%s = %s + %s\n", $$, $1, $3); }
+                             printf("%s = %s + %s\n", tmp_name, $1, $3); }
      | expr '-' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
                              printf("%s = %s - %s\n", $$, $1, $3); }
