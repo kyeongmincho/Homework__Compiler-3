@@ -2,6 +2,12 @@
 #include "calc.tab.h"
 #include <stdlib.h>
 void yyerror(char *);
+
+enum {
+    INT_TYPE,
+    FLOAT_TYPE
+};
+
 %}
 
 /* regexp definitions */
@@ -9,7 +15,6 @@ delim [ \t]
 ws {delim}+
 digit [0-9]
 letter [A-Za-z]
-type (int|float)
 id {letter}({letter}|{digit})*
 integer (0|([1-9]{digit}*))
 number {integer}\.{digit}+((E|e)[+\-]?{digit}+)?
@@ -23,8 +28,10 @@ newline \n
            return FLOAT; }
 {integer} { strcpy(yylval.s_val, yytext);
             return INT; }
-{type} { strcpy(yylval.s_val, yytext);
-         return TYPE; }
+(int) { yylval.i_val = INT_TYPE;
+        return TYPE; }
+(float) { yylval.i_val = FLOAT_TYPE;
+          return TYPE; }
 {id} { strcpy(yylval.s_val, yytext);
        return IDENTIFIER; }
 {operator} { return *yytext; }
