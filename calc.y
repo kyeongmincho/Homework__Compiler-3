@@ -18,7 +18,15 @@ struct symbol_struct {
 struct symbol_struct sym_tab[512];
 int sym_cnt = 0;
 
-int exist_sym_tab(const char *);
+int lookup_sym_tab(const char *);
+
+enum {
+    INT_TYPE = 1,
+    FLOAT_TYPE
+};
+
+int type_check_flag = 0;
+int idx;
 
 %}
 
@@ -57,10 +65,18 @@ stmt : asgn
      | decl
      ;
 
-asgn : IDENTIFIER EQ expr { printf("%s = %s\n", $1, $3); }
+asgn : IDENTIFIER EQ expr { idx = lookup_sym_tab($1);
+                            if (idx == -1) {
+                                printf("Error!\n%s is unknown id\n", $1);
+                                exit(0);
+                            }
+                            printf("%s = %s\n", $1, $3);
+                            if (type_check_flag != sym_tab[idx].type)
+                                printf("//warning: type mismatch\n");
+                            type_check_flag = 0;}
      ;
 
-decl : TYPE IDENTIFIER { if (exist_sym_tab($2)) {
+decl : TYPE IDENTIFIER { if (lookup_sym_tab($2) != -1) {
                             printf("Error!\n%s is already declared\n", $2);
                             exit(0);
                          }
@@ -68,12 +84,16 @@ decl : TYPE IDENTIFIER { if (exist_sym_tab($2)) {
                          sym_tab[sym_cnt++].type = $1; }
      ;
 
-expr : FLOAT               { strcpy($$, $1); }
-     | INT                 { strcpy($$, $1); }
-     | IDENTIFIER          { if (!exist_sym_tab($1)) {
+expr : FLOAT               { type_check_flag |= FLOAT_TYPE;
+                             strcpy($$, $1); }
+     | INT                 { type_check_flag |= INT_TYPE;
+                             strcpy($$, $1); }
+     | IDENTIFIER          { idx = lookup_sym_tab($1);
+                             if (idx == -1) {
                                 printf("Error!\n%s is unknown id\n", $1);
                                 exit(0);
                              }
+                             type_check_flag |= sym_tab[idx].type;
                              strcpy($$, $1); }
      | expr '+' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
@@ -115,12 +135,12 @@ int next_tmp()
 }
 
 /* 심볼 테이블에 변수가 선언되었는지 체크 */
-int exist_sym_tab(const char *name)
+int lookup_sym_tab(const char *name)
 {
-  int i, ret = 0;
+  int i, ret = -1;
   for (i = 0; i < sym_cnt; ++i) {
     if (!strcmp(sym_tab[i].name, name)) {
-      ret = 1;
+      ret = i;
       break;
     }
   }

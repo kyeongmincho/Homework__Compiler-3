@@ -4,7 +4,7 @@
 void yyerror(char *);
 
 enum {
-    INT_TYPE,
+    INT_TYPE = 1,
     FLOAT_TYPE
 };
 
