@@ -3,8 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-void yyerror(char *);
 int yylex(void);
+void yyerror(const char *msg);
+
+FILE *yyin, *outfile;
 
 char tmp_name[5];
 int tmp_cnt = 0;
@@ -29,6 +31,7 @@ int type_check_flag = 0;
 int idx;
 
 %}
+
 
 /* yylval에 다양한 타입을 담기 위한 union */
 %union  {
@@ -67,17 +70,19 @@ stmt : asgn
 
 asgn : IDENTIFIER EQ expr { idx = lookup_sym_tab($1);
                             if (idx == -1) {
-                                printf("Error!\n%s is unknown id\n", $1);
+                                fprintf(outfile, "Error!\n%s is unknown id\n",
+                                $1);
                                 exit(0);
                             }
-                            printf("%s = %s\n", $1, $3);
+                            fprintf(outfile, "%s = %s\n", $1, $3);
                             if (type_check_flag != sym_tab[idx].type)
-                                printf("//warning: type mismatch\n");
+                                fprintf(outfile, "//warning: type mismatch\n");
                             type_check_flag = 0;}
      ;
 
 decl : TYPE IDENTIFIER { if (lookup_sym_tab($2) != -1) {
-                            printf("Error!\n%s is already declared\n", $2);
+                            fprintf(outfile, "Error!\n%s is already declared\n",
+                             $2);
                             exit(0);
                          }
                          strcpy(sym_tab[sym_cnt].name, $2);
@@ -90,41 +95,47 @@ expr : FLOAT               { type_check_flag |= FLOAT_TYPE;
                              strcpy($$, $1); }
      | IDENTIFIER          { idx = lookup_sym_tab($1);
                              if (idx == -1) {
-                                printf("Error!\n%s is unknown id\n", $1);
+                                fprintf(outfile, "Error!\n%s is unknown id\n",
+                                $1);
                                 exit(0);
                              }
                              type_check_flag |= sym_tab[idx].type;
                              strcpy($$, $1); }
      | expr '+' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
-                             printf("%s = %s + %s\n", tmp_name, $1, $3); }
+                             fprintf(outfile, "%s = %s + %s\n", tmp_name, $1,
+                             $3); }
      | expr '-' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
-                             printf("%s = %s - %s\n", $$, $1, $3); }
+                             fprintf(outfile, "%s = %s - %s\n", $$, $1, $3); }
      | expr '*' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
-                             printf("%s = %s * %s\n", $$, $1, $3); }
+                             fprintf(outfile, "%s = %s * %s\n", $$, $1, $3); }
      | expr '/' expr       { sprintf(tmp_name, "t%d", next_tmp());
                              strcpy($$, tmp_name);
-                             printf("%s = %s / %s\n", $$, $1, $3); }
+                             fprintf(outfile, "%s = %s / %s\n", $$, $1, $3); }
      | '(' expr ')'        { strcpy($$, $2); }
      | '-' expr %prec UMINUS { sprintf(tmp_name, "t%d", next_tmp());
                                strcpy($$, tmp_name);
-                               printf("%s = -%s\n", $$, $2); }
+                               fprintf(outfile, "%s = -%s\n", $$, $2); }
      ;
 
 %%
 
 /* error 내용을 출력 */
-void yyerror(char *s)
+void yyerror(const char *s)
 {
   printf("%s\n", s);
 }
 
 /* 에러가 나기 전까지 수식 계산을 반복 */
-int main(void)
+int main(int argc, char **argv)
 {
+  yyin = fopen(argv[1], "r");
+  outfile = fopen("output.txt", "w");
   yyparse();
+  fclose(yyin);
+  fclose(outfile);
   return 0;
 }
 
